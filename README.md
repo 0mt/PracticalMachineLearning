@@ -1,3 +1,2 @@
-# PracticalMachineLearning
-Coursera tasks -- course project
-See <0mt.github.io/PracticalMachineLearning> for HTML report
+# PracticalMachineLearning -- course project
+See <https://0mt.github.io/PracticalMachineLearning/> for HTML report
