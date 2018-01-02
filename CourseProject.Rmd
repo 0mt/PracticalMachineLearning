@@ -22,12 +22,12 @@ references:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-In this course project, we use the Weight Lifting Exercise Dataset (available at <http://groupware.les.inf.puc-rio.br/har>) to build a random forest model that predicts how well a person performs dumbell lifts.
+In this course project, we use the Weight Lifting Exercise Dataset (available at <http://groupware.les.inf.puc-rio.br/har>) to build a random forest model that predicts how well a person performs dumbbell lifts.
 
 #### Data 
 
 According to the original paper @thePaper, six participants were asked to perform dumbbell lifts in five different manners: correctly (class A) and incorrectly (classes B, C, D, E).
-Measurements from accelerometers mounted on the participants' belts, gloves, armbands and dumbbels are stored in the Weight Lifting Exercise Dataset (available at <http://groupware.les.inf.puc-rio.br/har>).
+Measurements from accelerometers mounted on the participants' belts, gloves, armbands and dumbbells are stored in the Weight Lifting Exercise Dataset (available at <http://groupware.les.inf.puc-rio.br/har>).
 
 ```{r}
 if (!file.exists("./data.csv")) {
@@ -83,7 +83,7 @@ model <- train(classe ~ ., data = traindf, ntree = 99, trControl = fitControl,
                tuneGrid = data.frame(.mtry = 7))
 model
 ```
-Note that we resort to the 5-fold cross-validation resampling technique instead of the default bootstraping in order to improve perfomance.
+Note that we resort to the 5-fold cross-validation resampling technique instead of the default bootstrapping in order to decrease computational time.
 The error rate vs. number of trees plot shown below confirms that at `ntree = 99` the error of the model is relatively small $(< 0.02)$ and roughly constant.
 ```{r}
 plot(model$finalModel, main = "Error rate vs. Number of trees")
