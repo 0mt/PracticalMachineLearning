@@ -1,0 +1,117 @@
+---
+title: "Machine Learning Course Project"
+author: "Oleh Tovkach"
+date: "1/1/2018"
+output: html_document
+references:
+- id: thePaper
+  title: Qualitative activity recognition of weight lifting exercises
+  author:
+  - family: Velloso 
+    given: Eduardo *et al*.
+  container-title: Proceedings of the 4th Augmented Human International Conference
+  URL: 'http://groupware.les.inf.puc-rio.br/har'
+  publisher: ACM
+  page: 116 - 123
+  type: article-journal
+  issued:
+    year: 2013
+---    
+    
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this course project, we use the Weight Lifting Exercise Dataset (available at <http://groupware.les.inf.puc-rio.br/har>) to build a random forest model that predicts how well a person performs dumbell lifts.
+
+#### Data 
+
+According to the original paper @thePaper, six participants were asked to perform dumbbell lifts in five different manners: correctly (class A) and incorrectly (classes B, C, D, E).
+Measurements from accelerometers mounted on the participants' belts, gloves, armbands and dumbbels are stored in the Weight Lifting Exercise Dataset (available at <http://groupware.les.inf.puc-rio.br/har>).
+
+```{r}
+if (!file.exists("./data.csv")) {
+  download.file("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", 
+                destfile = "./data.csv", method = "curl")
+}
+df <- read.csv("data.csv", header=TRUE, stringsAsFactors=TRUE, 
+                     na.strings=c("", "NA"))  # read strings as factors and empty cells as NAs
+```
+Technically, the data set has the following structure.
+```{r}
+str(df, list.len = 10)  # only show first 10 columns 
+```
+It is a data frame with 19622 observations of  160 variables.
+A closer inspection reveals that columns 1 to 7 user/participant name, timestamps, etc.
+Although it may be an oversimplification, this study is not going to take into account possible time effects.
+Hence, we omit those columns as redundant.
+```{r}
+df <- df[, -c(1:7)]
+```
+Unfortunately, the updated `df` is not perfect in the sense of missing values  
+```{r}
+naCols <- apply(df, 2, function(x) any(is.na(x)))
+table(naCols)
+```
+100 of 153 columns have at lest one NA cell.
+For simplicity we remove all ``incomplete'' variables as well.
+```{r}
+df <- df[, naCols == FALSE]
+dim(df)
+```
+Thus, we end up with 19622 observations of 53 variables -- 52 potential predictors and one dependent variable `classe` (factor with five levels).
+By means of the `nearZeroVar` from the `caret` package one can ensure that all the 53 variables have non-zero variance, i.e. are not constant.
+
+
+
+
+#### Model
+
+Let us start our modelling by splitting the data into training and testing subsets, `traindf` and `testdf`, respectively.
+```{r, warning = FALSE, message = FALSE}
+set.seed(99)
+library(caret)
+inTrain <- createDataPartition(df$classe, p = 0.7, list = FALSE)  # traindf = 70% of data
+traindf <- df[inTrain, ]
+testdf <- df[-inTrain, ]
+```
+Given the specifics of our problem, the random forest seems like a suitable method.
+We use all the variables, except for `classe`, as predictors and by trials and errors find that the model with 99 trees (`ntree = 99`) and $\sqrt{52}\approx7$ splitting variables at each tree node (`mtry = 7`) provides a reasonable balance between computational time and accuracy.
+```{r, warning = FALSE, message = FALSE}
+fitControl <- trainControl(method = "cv", number = 5) # use 5-fold cross-validation
+model <- train(classe ~ ., data = traindf, ntree = 99, trControl = fitControl,
+               tuneGrid = data.frame(.mtry = 7))
+model
+```
+Note that we resort to the 5-fold cross-validation resampling technique instead of the default bootstraping in order to improve perfomance.
+The error rate vs. number of trees plot shown below confirms that at `ntree = 99` the error of the model is relatively small $(< 0.02)$ and roughly constant.
+```{r}
+plot(model$finalModel, main = "Error rate vs. Number of trees")
+```
+
+The estimated out-of-bag accuracy is reasonably high (>99\% which should be enough for passing the quiz)
+```{r}
+confusionMatrix(testdf$classe, predict(model, newdata = testdf))$overall
+```
+resulting in OOB error of $\approx 0.007$.
+
+
+
+
+
+#### Actual prediction
+
+Now let us apply our model to the actual testing data set provided by the Coursera team
+```{r}
+if (!file.exists("./testing.csv")) {
+  download.file("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", 
+                destfile = "./testing.csv", method = "curl")
+}
+testing <- read.csv("testing.csv", header=TRUE, stringsAsFactors=TRUE, 
+                     na.strings=c("", "NA"))  # read strings as factors and empty cells as NAs
+testing <- testing[, names(testing) %in% names(traindf)]  # only subset features of the model
+predict(model, newdata = testing)
+```
+
+
+#### References
