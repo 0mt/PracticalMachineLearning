@@ -1,2 +1,2 @@
 # PracticalMachineLearning
-Coursera tasks
+Coursera tasks -- course project
